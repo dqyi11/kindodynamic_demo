@@ -6,6 +6,7 @@
 #include <boost/program_options.hpp>
 #include <dart/dart.hpp>
 #include <dart/utils/urdf/DartLoader.hpp>
+#include <aikido/constraint/Satisfied.hpp>
 #include <libherb/Herb.hpp>
 
 namespace po = boost::program_options;
@@ -33,6 +34,7 @@ void moveArmTo(herb::Herb& robot,
                MetaSkeletonPtr skeleton,
                const Eigen::VectorXd& goalPos)
 {
+  auto testable = std::make_shared<aikido::constraint::Satisfied>(armSpace);
   auto trajectory = robot.planToConfiguration(
       armSpace, skeleton, goalPos, nullptr, planningTimeout);
 
@@ -43,7 +45,7 @@ void moveArmTo(herb::Herb& robot,
 
   auto smoothTrajectory = robot.smoothPath(
       skeleton,
-      trajectory.get(), nullptr);
+      trajectory.get(), testable);
 
   robot.executeTrajectory(std::move(smoothTrajectory)).wait();
 }
