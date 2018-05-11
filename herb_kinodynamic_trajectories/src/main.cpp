@@ -50,6 +50,26 @@ void moveArmTo(herb::Herb& robot,
   robot.executeTrajectory(std::move(smoothTrajectory)).wait();
 }
 
+void moveArmTo(herb::Herb& robot,
+               MetaSkeletonStateSpacePtr armSpace,
+               MetaSkeletonPtr skeleton,
+               const Eigen::VectorXd& viaPos,
+               const Eigen::VectorXd& viaVelocity,
+               const Eigen::VectorXd& goalPos)
+{
+  auto testable = std::make_shared<aikido::constraint::Satisfied>(armSpace);
+  auto trajectory = robot.planMinimumTimeViaConstraint(
+      armSpace, skeleton, goalPos, testable, planningTimeout);
+
+  if (!trajectory)
+  {
+    throw std::runtime_error("failed to find a solution");
+  }
+
+  robot.executeTrajectory(std::move(trajectory)).wait();
+}
+
+
 
 int main(int argc, char** argv)
 {
@@ -201,6 +221,10 @@ int main(int argc, char** argv)
     moveArmTo(robot, leftArmSpace, leftArmSkeleton, leftHighHome);
     moveArmTo(robot, rightArmSpace, rightArmSkeleton, rightHighHome);
     waitForUser("Press [ENTER] to exit: ");
+  }
+  else if (target == 4) // target 4: test kinodynamic planning
+  {
+    ROS_INFO("Moving the left arm to menacing position");
   }
 
   if (herbReal)
