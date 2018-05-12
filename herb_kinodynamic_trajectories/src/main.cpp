@@ -21,6 +21,7 @@ static const std::string topicName("dart_markers");
 static const std::string baseFrameName("map");
 
 static const double planningTimeout{5.};
+static const double maxDistanceBtwValidityChecks{0.01};
 bool herbReal = false;
 
 void waitForUser(const std::string& msg)
@@ -58,8 +59,10 @@ void moveArmTo(herb::Herb& robot,
                const Eigen::VectorXd& goalPos)
 {
   auto testable = std::make_shared<aikido::constraint::Satisfied>(armSpace);
+
+  std::cout << "ARM SPACE DIMENSION: " << armSpace->getDimension() << std::endl;
   auto trajectory = robot.planMinimumTimeViaConstraint(
-      armSpace, skeleton, goalPos, testable, planningTimeout);
+      armSpace, skeleton, goalPos, viaPos, viaVelocity, nullptr, planningTimeout, maxDistanceBtwValidityChecks);
 
   if (!trajectory)
   {
@@ -160,6 +163,15 @@ int main(int argc, char** argv)
   Eigen::VectorXd neckPositionRelaxed(2);
   neckPositionRelaxed << 0, 10;
 
+  Eigen::VectorXd startPosition(7);
+  startPosition << 5.56871, 0.152878, -1.33005, 1.48987, -2.64342, -0.999294, 2.58056;
+  Eigen::VectorXd viaPosition(7);
+  viaPosition << 3.79241, -0.537715, -0.585673, 1.87933, -2.58169, -1.6, 1.73972;
+  Eigen::VectorXd viaVelocity(7);
+  viaVelocity << 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0;
+  Eigen::VectorXd goalPosition(7);
+  goalPosition << 3.68, -1.90, 0.00, 2.20, 0.00, 0.00, 0.00;
+
   waitForUser("Press [ENTER] to start: ");
 
   if (target == 0) // target 0: close hands //////////////////////////////////
@@ -224,7 +236,15 @@ int main(int argc, char** argv)
   }
   else if (target == 4) // target 4: test kinodynamic planning
   {
-    ROS_INFO("Moving the left arm to menacing position");
+    ROS_INFO("Moving the left arm to relaxed home");
+    moveArmTo(robot, leftArmSpace, leftArmSkeleton, leftRelaxedHome);
+
+    ROS_INFO("Moving the right arm to start position");
+    moveArmTo(robot, rightArmSpace, rightArmSkeleton, rightHigherRelaxedHome);
+   
+    ROS_INFO("Starting the kinodynamic testing");
+    moveArmTo(robot, rightArmSpace, rightArmSkeleton, 
+              viaPosition, viaVelocity,goalPosition);
   }
 
   if (herbReal)
