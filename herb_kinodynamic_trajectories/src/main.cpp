@@ -60,13 +60,25 @@ void moveArmTo(herb::Herb& robot,
 {
   auto testable = std::make_shared<aikido::constraint::Satisfied>(armSpace);
 
+  double viaTime = 0.0;
   std::cout << "ARM SPACE DIMENSION: " << armSpace->getDimension() << std::endl;
   auto trajectory = robot.planMinimumTimeViaConstraint(
-      armSpace, skeleton, goalPos, viaPos, viaVelocity, nullptr, planningTimeout, maxDistanceBtwValidityChecks);
+      armSpace, skeleton, goalPos, viaPos, viaVelocity, nullptr, viaTime,
+      planningTimeout, maxDistanceBtwValidityChecks);
+
+  auto viaState = armSpace->createState();
+  Eigen::VectorXd viaVel(armSpace->getDimension());
+  trajectory->evaluate(viaTime, viaState);
+  trajectory->evaluateDerivative(viaTime, 1, viaVel);
+  std::cout << "VALIDATION:";
+  armSpace->print(viaState, std::cout);
+  std::cout << std::endl;
+  std::cout << "VELOCITY:";
+  std::cout << viaVel << std::endl;
 
   if (!trajectory)
   {
-    throw std::runtime_error("failed to find a solution");
+    throw std::runtime_error("failed to find a 1.solution");
   }
   else
   {
@@ -169,14 +181,6 @@ int main(int argc, char** argv)
   Eigen::VectorXd neckPositionRelaxed(2);
   neckPositionRelaxed << 0, 10;
 
-  Eigen::VectorXd startPosition(7);
-  startPosition << 5.56871, 0.152878, -1.33005, 1.48987, -2.64342, -0.999294, 2.58056;
-  Eigen::VectorXd viaPosition(7);
-  viaPosition << 3.79241, -0.537715, -0.585673, 1.87933, -2.58169, -1.6, 1.73972;
-  Eigen::VectorXd viaVelocity(7);
-  viaVelocity << 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0;
-  Eigen::VectorXd goalPosition(7);
-  goalPosition << 3.68, -1.90, 0.00, 2.20, 0.00, 0.00, 0.00;
 
   waitForUser("Press [ENTER] to start: ");
 
@@ -242,19 +246,61 @@ int main(int argc, char** argv)
   }
   else if (target == 4) // target 4: test kinodynamic planning
   {
+    Eigen::VectorXd startRightPosition(7);
+    startRightPosition << 5.267, -1.909, 0.0, 1.470, 0.0, 0.0, 0.0;  
+    Eigen::VectorXd viaRightPosition(7);
+    viaRightPosition << 5.267, -0.667, -0.396, 0.123, 0.0, 0.0, 0.0;
+    Eigen::VectorXd viaRightVelocity(7);
+    viaRightVelocity << 0.0, 0.4, 0.4, 0.4, 0.0, 0.0, 0.0;
+    Eigen::VectorXd goalRightPosition(7);
+    goalRightPosition << 5.267, 0.137, -0.524, 0.598, 0.00, 0.00, 0.00;
+
     ROS_INFO("Moving the left arm to relaxed home");
     moveArmTo(robot, leftArmSpace, leftArmSkeleton, leftRelaxedHome);
 
     ROS_INFO("Moving the right arm to start position");
-    moveArmTo(robot, rightArmSpace, rightArmSkeleton, rightHigherRelaxedHome);
+    moveArmTo(robot, rightArmSpace, rightArmSkeleton, startRightPosition);
    
+    waitForUser("Press key to continue.");
     ROS_INFO("Starting the kinodynamic testing");
     moveArmTo(robot, rightArmSpace, rightArmSkeleton, 
-              viaPosition, viaVelocity,goalPosition);
+              viaRightPosition, viaRightVelocity,goalRightPosition);
 
     waitForUser("Press [ENTER] to exit: ");
   }
+  else if (target == 5) // target 5: test kinodynamic planning
+  {
+    // print right arm velocity bound
+    Eigen::VectorXd lowerBound = rightArmSkeleton->getVelocityLowerLimits();
+    Eigen::VectorXd upperBound = rightArmSkeleton->getVelocityUpperLimits();
 
+    std::cout << "HERB VELOCITY BOUNDS" << std::endl;
+    std::cout << "LOWER: " << lowerBound << std::endl;
+    std::cout << "UPPER: " << upperBound << std::endl;
+
+    Eigen::VectorXd startRightPosition(7);
+    startRightPosition << 4.78, -0.685, -0.038, 0.762, 0.0, 0.0, 0.0;  
+    Eigen::VectorXd viaRightPosition(7);
+    viaRightPosition << 4.78, -0.667, -0.036, 0.853, 0.0, 0.0, 0.0; 
+    Eigen::VectorXd viaRightVelocity(7);
+    viaRightVelocity << 0.1, 0.6, 0.6, 1.4, 0.0, 0.0, 0.0;
+    Eigen::VectorXd goalRightPosition(7);
+    goalRightPosition << 4.816, -0.5, -0.0, 0.558, 0.00, 0.00, 0.00;
+
+    ROS_INFO("Moving the left arm to relaxed home");
+    moveArmTo(robot, leftArmSpace, leftArmSkeleton, leftRelaxedHome);
+
+    ROS_INFO("Moving the right arm to start position");
+    moveArmTo(robot, rightArmSpace, rightArmSkeleton, startRightPosition);
+   
+    waitForUser("Press key to continue.");
+    ROS_INFO("Starting the kinodynamic testing");
+    moveArmTo(robot, rightArmSpace, rightArmSkeleton, 
+              viaRightPosition, viaRightVelocity,goalRightPosition);
+
+    waitForUser("Press [ENTER] to exit: ");
+  }
+  
   if (herbReal)
   {
     robot.switchFromTrajectoryExecutorsToGravityCompensationControllers();
