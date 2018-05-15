@@ -68,7 +68,13 @@ void moveArmTo(herb::Herb& robot,
   {
     throw std::runtime_error("failed to find a solution");
   }
-
+  else
+  {
+    std::cout << "FIND A TRAJECTORY - Duration ";
+    std::cout << trajectory->getDuration() << std::endl;
+  }
+  
+  waitForUser("READY TO EXECUTE");
   robot.executeTrajectory(std::move(trajectory)).wait();
 }
 
@@ -245,6 +251,8 @@ int main(int argc, char** argv)
     ROS_INFO("Starting the kinodynamic testing");
     moveArmTo(robot, rightArmSpace, rightArmSkeleton, 
               viaPosition, viaVelocity,goalPosition);
+
+    waitForUser("Press [ENTER] to exit: ");
   }
 
   if (herbReal)
