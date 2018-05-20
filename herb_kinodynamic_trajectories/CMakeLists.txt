@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 2.8.12)
-project(simple_trajectories)
+project(herb_kinodynamic_trajectories)
 
-add_executable(simple_trajectories
+add_executable(herb_kinodynamic_trajectories
   src/main.cpp)
 
-target_link_libraries(simple_trajectories
+target_link_libraries(herb_kinodynamic_trajectories
   ${DART_LIBRARIES}
   ${aikido_LIBRARIES}
   ${Boost_LIBRARIES}
   libherb)
 
-install(TARGETS simple_trajectories RUNTIME DESTINATION bin)
+install(TARGETS herb_kinodynamic_trajectories RUNTIME DESTINATION bin)
