@@ -47,7 +47,9 @@ find_package(magi REQUIRED)
 # Demos
 #
 
+add_subdirectory(simple_trajectories)
 add_subdirectory(herb_kinodynamic_trajectories)
+
 
 # ===============================================================================
 # Formatting
