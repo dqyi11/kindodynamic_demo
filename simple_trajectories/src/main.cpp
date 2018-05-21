@@ -44,6 +44,7 @@ void moveArmTo(herb::Herb& robot,
   {
     throw std::runtime_error("failed to find a solution");
   }
+  ROS_INFO("trajectory planned");
 
   auto smoothTrajectory = robot.smoothPath(
       skeleton,
