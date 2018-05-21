@@ -49,6 +49,7 @@ find_package(magi REQUIRED)
 
 add_subdirectory(simple_trajectories)
 add_subdirectory(herb_kinodynamic_trajectories)
+#add_subdirectory(move_with_table)
 
 
 # ===============================================================================
