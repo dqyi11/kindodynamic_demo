@@ -6,14 +6,17 @@
 #include <boost/program_options.hpp>
 #include <dart/dart.hpp>
 #include <dart/utils/urdf/DartLoader.hpp>
+#include <aikido/constraint/Satisfied.hpp>
 #include <libherb/Herb.hpp>
 
 namespace po = boost::program_options;
 
 using dart::dynamics::SkeletonPtr;
+using dart::dynamics::MetaSkeletonPtr;
 
 using aikido::statespace::dart::MetaSkeletonStateSpace;
 using aikido::statespace::dart::MetaSkeletonStateSpacePtr;
+
 
 static const std::string topicName("dart_markers");
 static const std::string baseFrameName("map");
@@ -30,18 +33,21 @@ void waitForUser(const std::string& msg)
 
 void moveArmTo(herb::Herb& robot,
                MetaSkeletonStateSpacePtr armSpace,
+               MetaSkeletonPtr skeleton,
                const Eigen::VectorXd& goalPos)
 {
+  auto testable = std::make_shared<aikido::constraint::Satisfied>(armSpace);
   auto trajectory = robot.planToConfiguration(
-      armSpace, goalPos, planningTimeout, nullptr);
+      armSpace, skeleton, goalPos, nullptr, planningTimeout);
 
   if (!trajectory)
   {
     throw std::runtime_error("failed to find a solution");
   }
 
-  auto smoothTrajectory = robot.smoothTrajectory(
-      std::move(trajectory), true, true, nullptr);
+  auto smoothTrajectory = robot.smoothPath(
+      skeleton,
+      trajectory.get(), testable);
 
   robot.executeTrajectory(std::move(smoothTrajectory)).wait();
 }
@@ -84,7 +90,7 @@ int main(int argc, char** argv)
   // Load HERB either in simulation or real based on arguments
   ROS_INFO("Loading HERB.");
   herb::Herb robot(env, !herbReal);
-  SkeletonPtr robotSkeleton = robot.getSkeleton();
+  //SkeletonPtr robotSkeleton = robot.getSkeleton();
 
   // Start Visualization Topic
   static const std::string execTopicName = topicName + "/simple_trajectories";
@@ -100,10 +106,14 @@ int main(int argc, char** argv)
   // Add HERB to the viewer.
   viewer.setAutoUpdate(true);
 
+  auto leftArmSkeleton = robot.getLeftArm()->getMetaSkeleton();
+  auto rightArmSkeleton = robot.getRightArm()->getMetaSkeleton(); 
+
   auto leftArmSpace
-      = std::make_shared<MetaSkeletonStateSpace>(robot.getLeftArm());
+      = std::make_shared<MetaSkeletonStateSpace>(leftArmSkeleton.get());
   auto rightArmSpace
-      = std::make_shared<MetaSkeletonStateSpace>(robot.getRightArm());
+      = std::make_shared<MetaSkeletonStateSpace>(rightArmSkeleton.get());
+
 
   // Predefined positions ////////////////////////////////////////////////////
 
@@ -157,9 +167,9 @@ int main(int argc, char** argv)
   if (target == 2)  // target 2: move arms to relaxed home ///////////////////
   {
     ROS_INFO("Moving the left arm to relaxed home");
-    moveArmTo(robot, leftArmSpace, leftRelaxedHome);
+    moveArmTo(robot, leftArmSpace, leftArmSkeleton, leftRelaxedHome);
     ROS_INFO("Moving the right arm to relaxed home");
-    moveArmTo(robot, rightArmSpace, rightRelaxedHome);
+    moveArmTo(robot, rightArmSpace, rightArmSkeleton, rightRelaxedHome);
     
     ROS_INFO("Opening both hands");
     robot.getLeftHand()->executePreshape("open").wait();
@@ -170,16 +180,16 @@ int main(int argc, char** argv)
     
     waitForUser("Press key to reset.");
     robot.setNeckPosition(neckPositionZero);
-    moveArmTo(robot, leftArmSpace, leftHighHome);
-    moveArmTo(robot, rightArmSpace, rightHighHome);
+    moveArmTo(robot, leftArmSpace, leftArmSkeleton, leftHighHome);
+    moveArmTo(robot, rightArmSpace, rightArmSkeleton, rightHighHome);
     waitForUser("Press [ENTER] to exit: ");
   }
   else if (target == 3) // target 3: move arms to menacing positions /////////
   {
     ROS_INFO("Moving the left arm to menacing position");
-    moveArmTo(robot, leftArmSpace, leftMenacing);
+    moveArmTo(robot, leftArmSpace, leftArmSkeleton, leftMenacing);
     ROS_INFO("Moving the right arm to menacing position");
-    moveArmTo(robot, rightArmSpace, rightMenacing);
+    moveArmTo(robot, rightArmSpace, rightArmSkeleton, rightMenacing);
     
     ROS_INFO("Opening both hands");
     robot.getLeftHand()->executePreshape("open").wait();
@@ -190,8 +200,8 @@ int main(int argc, char** argv)
     
     waitForUser("Press key to reset.");
     robot.setNeckPosition(neckPositionZero);
-    moveArmTo(robot, leftArmSpace, leftHighHome);
-    moveArmTo(robot, rightArmSpace, rightHighHome);
+    moveArmTo(robot, leftArmSpace, leftArmSkeleton, leftHighHome);
+    moveArmTo(robot, rightArmSpace, rightArmSkeleton, rightHighHome);
     waitForUser("Press [ENTER] to exit: ");
   }
 
