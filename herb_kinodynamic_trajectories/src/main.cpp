@@ -201,7 +201,11 @@ int main(int argc, char** argv)
 
   if (herbReal)
   {
-    robot.switchFromGravityCompensationControllersToTrajectoryExecutors();
+    bool success = robot.switchFromGravityCompensationControllersToTrajectoryExecutors();
+    if(!success)
+    {
+      ROS_INFO("Failed in switching from gravity compensation controller to trajectory executor");
+    }
   }
 
   if (target == 2)  // target 2: move arms to relaxed home ///////////////////
@@ -255,8 +259,8 @@ int main(int argc, char** argv)
     Eigen::VectorXd goalRightPosition(7);
     goalRightPosition << 5.267, 0.137, -0.524, 0.598, 0.00, 0.00, 0.00;
 
-    ROS_INFO("Moving the left arm to relaxed home");
-    moveArmTo(robot, leftArmSpace, leftArmSkeleton, leftRelaxedHome);
+    //ROS_INFO("Moving the left arm to relaxed home");
+    //moveArmTo(robot, leftArmSpace, leftArmSkeleton, leftRelaxedHome);
 
     ROS_INFO("Moving the right arm to start position");
     moveArmTo(robot, rightArmSpace, rightArmSkeleton, startRightPosition);
@@ -303,7 +307,11 @@ int main(int argc, char** argv)
   
   if (herbReal)
   {
-    robot.switchFromTrajectoryExecutorsToGravityCompensationControllers();
+    bool success = robot.switchFromTrajectoryExecutorsToGravityCompensationControllers();
+    if(!success)
+    {
+      ROS_INFO("Failed in switching from trajectory executor to gravity compensation controller");
+    }
   }
 
   return 0;
